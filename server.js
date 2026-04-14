@@ -1,10 +1,8 @@
-const dns = require("dns");
-dns.setDefaultResultOrder("ipv4first"); // 🔥 FIX IPv6 Render problem
-
 const express = require("express");
-const nodemailer = require("nodemailer");
 const cors = require("cors");
 require("dotenv").config();
+
+const { Resend } = require("resend");
 
 const app = express();
 
@@ -17,39 +15,12 @@ app.use(
 
 app.use(express.json());
 
+// ✅ INIT RESEND
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // ✅ HEALTH CHECK
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
-});
-
-// ✅ SMTP TRANSPORTER (FORCE IPv4)
-const transporter = nodemailer.createTransport({
-  host: "mail.infomaniak.com",
-  port: 587,
-  secure: false,
-
-  family: 4, // 🔥 KLJUČNO: forsira IPv4
-
-  auth: {
-    user: process.env.EMAIL_USER || "info@helvet-assist.ch",
-    pass: process.env.EMAIL_PASS || process.env.PASSWORD,
-  },
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-
-  connectionTimeout: 15000,
-  socketTimeout: 15000,
-});
-
-// 🔥 VERIFY NA STARTU
-transporter.verify((error) => {
-  if (error) {
-    console.log("❌ SMTP ERROR:", error);
-  } else {
-    console.log("✅ SMTP ready to send emails");
-  }
 });
 
 // ✅ ROUTE
@@ -67,7 +38,7 @@ app.post("/send", async (req, res) => {
       isCompany,
     } = req.body;
 
-    // 🔥 VALIDATION
+    // ✅ VALIDATION
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
@@ -77,9 +48,9 @@ app.post("/send", async (req, res) => {
 
     console.log("📩 New request received:", req.body);
 
-    const info = await transporter.sendMail({
-      from: `"Website Contact" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_USER,
+    const response = await resend.emails.send({
+      from: "Helvet Assist <onboarding@resend.dev>", // kasnije mijenjamo u tvoj domain
+      to: process.env.EMAIL_TO, // 👉 info@helvet-assist.ch
       replyTo: email,
 
       subject: `Nova poruka - ${service || "Contact form"}`,
@@ -104,7 +75,7 @@ Telefon firme: ${companyPhone || "-"}
       `,
     });
 
-    console.log("✅ Email sent:", info.messageId);
+    console.log("✅ Email sent:", response);
 
     return res.status(200).json({
       success: true,
@@ -120,7 +91,7 @@ Telefon firme: ${companyPhone || "-"}
   }
 });
 
-// ✅ PORT (Render)
+// ✅ PORT
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
