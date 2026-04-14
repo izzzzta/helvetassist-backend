@@ -1,7 +1,9 @@
+
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
 require("dotenv").config();
+
 
 const app = express();
 
@@ -27,15 +29,15 @@ app.post("/send", async (req, res) => {
   } = req.body;
 
   try {
-    const transporter = nodemailer.createTransport({
-      host: "smtp.infomaniak.com",
-      port: 587,
-      secure: false,
-      auth: {
-        user: "info@helvet-assist.ch",
-        pass: process.env.PASSWORD, // 🔥 mora biti na Renderu postavljen
-      },
-    });
+   const transporter = nodemailer.createTransport({
+  host: "smtp.infomaniak.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: "info@helvet-assist.ch",
+    pass: process.env.PASSWORD,
+  },
+});
 
     // opcionalno (možeš ostaviti)
     await transporter.verify();
