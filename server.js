@@ -39,8 +39,7 @@ app.post("/send", async (req, res) => {
   },
 });
 
-    // opcionalno (možeš ostaviti)
-    await transporter.verify();
+   
 
     await transporter.sendMail({
       from: `"Website Contact" <info@helvet-assist.ch>`,
