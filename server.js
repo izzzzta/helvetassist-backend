@@ -1,3 +1,6 @@
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first"); // 🔥 FIX IPv6 Render problem
+
 const express = require("express");
 const nodemailer = require("nodemailer");
 const cors = require("cors");
@@ -5,7 +8,7 @@ require("dotenv").config();
 
 const app = express();
 
-// ✅ CORS (za production možeš kasnije ograničiti domen)
+// ✅ CORS
 app.use(
   cors({
     origin: "*",
@@ -14,27 +17,34 @@ app.use(
 
 app.use(express.json());
 
-// ✅ HEALTH CHECK (Render koristi ovo da vidi da server radi)
+// ✅ HEALTH CHECK
 app.get("/", (req, res) => {
   res.send("Backend is running ✅");
 });
 
-// ✅ TRANSPORTER (kreira se jednom, ne svaki request)
+// ✅ SMTP TRANSPORTER (FORCE IPv4)
 const transporter = nodemailer.createTransport({
-  host: "mail.infomaniak.com", // 🔥 ispravno za Infomaniak
+  host: "mail.infomaniak.com",
   port: 587,
-  secure: false, // 🔥 587 = false (STARTTLS)
+  secure: false,
+
+  family: 4, // 🔥 KLJUČNO: forsira IPv4
+
   auth: {
     user: process.env.EMAIL_USER || "info@helvet-assist.ch",
     pass: process.env.EMAIL_PASS || process.env.PASSWORD,
   },
+
   tls: {
     rejectUnauthorized: false,
   },
+
+  connectionTimeout: 15000,
+  socketTimeout: 15000,
 });
 
-// 🔥 VERIFY NA STARTU (hvata greške odmah)
-transporter.verify((error, success) => {
+// 🔥 VERIFY NA STARTU
+transporter.verify((error) => {
   if (error) {
     console.log("❌ SMTP ERROR:", error);
   } else {
@@ -57,7 +67,7 @@ app.post("/send", async (req, res) => {
       isCompany,
     } = req.body;
 
-    // 🔥 VALIDATION (sprečava crash)
+    // 🔥 VALIDATION
     if (!name || !email || !message) {
       return res.status(400).json({
         success: false,
@@ -68,10 +78,12 @@ app.post("/send", async (req, res) => {
     console.log("📩 New request received:", req.body);
 
     const info = await transporter.sendMail({
-      from: `"Website Contact" <${process.env.EMAIL_USER || "info@helvet-assist.ch"}>`,
-      to: "info@helvet-assist.ch",
+      from: `"Website Contact" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_USER,
       replyTo: email,
+
       subject: `Nova poruka - ${service || "Contact form"}`,
+
       text: `
 📩 Nova poruka sa web stranice
 
@@ -108,7 +120,7 @@ Telefon firme: ${companyPhone || "-"}
   }
 });
 
-// 🔥 PORT (Render requirement)
+// ✅ PORT (Render)
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
