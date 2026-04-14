@@ -49,7 +49,7 @@ app.post("/send", async (req, res) => {
     console.log("📩 New request received:", req.body);
 
     const response = await resend.emails.send({
-      from: "Helvet Assist <onboarding@resend.dev>", // kasnije mijenjamo u tvoj domain
+      from: "Helvet Assist <info@helvet-assist.ch>", // kasnije mijenjamo u tvoj domain
       to: process.env.EMAIL_TO, // 👉 info@helvet-assist.ch
       replyTo: email,
 
